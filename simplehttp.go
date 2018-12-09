@@ -4,9 +4,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	net_url "net/url"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -69,6 +73,58 @@ func (sh *SimpleHttp) Get(url string) (string, error) {
 	}
 
 	sh.set_headers(r)
+	resp, err := client.Do(r)
+	if err != nil {
+		return "", nil
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		err := errors.New(fmt.Sprintf("GET error: %d:\nBody: %s\n", resp.StatusCode, string(body)))
+		sh.logger.WithField("error", err)
+		return string(body), err
+	}
+
+	return string(body), nil
+
+}
+
+func (sh *SimpleHttp) Post(url string, data interface{}) (string, error) {
+	url = sh.server + url
+
+	client := &http.Client{}
+
+	if sh.debug {
+		log.Printf("POST: %s\n", url)
+	}
+
+	extra_headers := make(map[string]string)
+	var reader io.Reader
+	switch t := data.(type) {
+	case net_url.Values:
+		reader = strings.NewReader(t.Encode())
+		extra_headers["Content-Type"] = "application/x-www-form-urlencoded"
+	default:
+		return "", errors.New(fmt.Sprintf("Unhandled type for POST: %t\n", t))
+	}
+
+	r, err := http.NewRequest("POST", url, reader)
+	if err != nil {
+		return "", err
+	}
+
+	for k, h := range extra_headers {
+		r.Header.Add(k, h)
+	}
+	sh.set_headers(r)
+
+	req, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		log.Printf("Could not dump request: %s\n", err.Error)
+	} else {
+		log.Printf("Request: %s\n", req)
+	}
 	resp, err := client.Do(r)
 	if err != nil {
 		return "", nil
