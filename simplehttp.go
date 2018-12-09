@@ -33,6 +33,10 @@ func (sh *SimpleHttp) SetDebug(d bool) {
 	sh.debug = d
 }
 
+func (sh *SimpleHttp) AddHeader(k string, v string) {
+	sh.static_headers[k] = v
+}
+
 func (sh *SimpleHttp) SetBearerAuth(key string) {
 	sh.static_headers["Authorization"] = "Bearer " + key
 }
