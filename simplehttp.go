@@ -1,7 +1,10 @@
 package simplehttp
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -20,6 +23,7 @@ type SimpleHttp struct {
 	debug          bool
 	static_headers map[string]string
 	logger         *logrus.Logger
+	transport      *http.Transport
 }
 
 func New(s string, lg *logrus.Logger) SimpleHttp {
@@ -52,6 +56,37 @@ func (sh *SimpleHttp) SetBasicAuth(username string, password string) {
 	sh.static_headers["Authorization"] = "Basic " + basic
 }
 
+func (sh *SimpleHttp) SetCustomCA(cert string) error {
+
+	block, _ := pem.Decode([]byte(cert))
+	if block == nil {
+		panic("failed to parse certificate PEM")
+	}
+	c, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		panic("failed to parse certificate: " + err.Error())
+	}
+
+	rootCAs, _ := x509.SystemCertPool()
+	if rootCAs == nil {
+		rootCAs = x509.NewCertPool()
+	}
+
+	rootCAs.AddCert(c)
+
+	config := &tls.Config{
+		RootCAs: rootCAs,
+	}
+
+	if sh.transport == nil {
+		sh.transport = &http.Transport{TLSClientConfig: config}
+	} else {
+		sh.transport.TLSClientConfig = config
+	}
+
+	return nil
+}
+
 func (sh *SimpleHttp) set_headers(r *http.Request) {
 	for k, v := range sh.static_headers {
 		r.Header.Add(k, v)
@@ -62,6 +97,10 @@ func (sh *SimpleHttp) Get(url string) (string, error) {
 	url = sh.server + url
 
 	client := &http.Client{}
+
+	if sh.transport != nil {
+		client.Transport = sh.transport
+	}
 
 	if sh.debug {
 		log.Printf("GET: %s\n", url)
