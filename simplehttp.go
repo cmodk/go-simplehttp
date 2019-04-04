@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -130,25 +131,41 @@ func (sh *SimpleHttp) Get(url string) (string, error) {
 }
 
 func (sh *SimpleHttp) Post(url string, data interface{}) (string, error) {
+	return sh.PostPriv(url, data, "POST")
+}
+
+func (sh *SimpleHttp) Put(url string, data interface{}) (string, error) {
+	return sh.PostPriv(url, data, "PUT")
+}
+
+func (sh *SimpleHttp) PostPriv(url string, data interface{}, method string) (string, error) {
 	url = sh.server + url
 
 	client := &http.Client{}
 
 	if sh.debug {
-		log.Printf("POST: %s\n", url)
+		log.Printf("%s: %s\n", method, url)
 	}
 
 	extra_headers := make(map[string]string)
 	var reader io.Reader
 	switch t := data.(type) {
+	case string:
+		reader = strings.NewReader(t)
 	case net_url.Values:
 		reader = strings.NewReader(t.Encode())
 		extra_headers["Content-Type"] = "application/x-www-form-urlencoded"
 	default:
-		return "", errors.New(fmt.Sprintf("Unhandled type for POST: %t\n", t))
+		//Default to json
+		buf, err := json.Marshal(data)
+		if err != nil {
+			return "", err
+		}
+
+		reader = strings.NewReader(string(buf))
 	}
 
-	r, err := http.NewRequest("POST", url, reader)
+	r, err := http.NewRequest(method, url, reader)
 	if err != nil {
 		return "", err
 	}
@@ -158,12 +175,15 @@ func (sh *SimpleHttp) Post(url string, data interface{}) (string, error) {
 	}
 	sh.set_headers(r)
 
-	req, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		log.Printf("Could not dump request: %s\n", err.Error)
-	} else {
-		log.Printf("Request: %s\n", req)
+	if sh.debug {
+		req, err := httputil.DumpRequest(r, true)
+		if err != nil {
+			log.Printf("Could not dump request: %s\n", err.Error)
+		} else {
+			log.Printf("Request: %s\n", req)
+		}
 	}
+
 	resp, err := client.Do(r)
 	if err != nil {
 		return "", nil
