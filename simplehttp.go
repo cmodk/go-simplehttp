@@ -163,6 +163,7 @@ func (sh *SimpleHttp) PostPriv(url string, data interface{}, method string) (str
 		}
 
 		reader = strings.NewReader(string(buf))
+		extra_headers["Content-Type"] = "application/json"
 	}
 
 	r, err := http.NewRequest(method, url, reader)
