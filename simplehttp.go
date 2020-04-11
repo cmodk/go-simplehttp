@@ -186,7 +186,7 @@ func (sh *SimpleHttp) PostPriv(url string, data interface{}, method string) (str
 
 	resp, err := client.Do(r)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
