@@ -18,3 +18,20 @@ func (sh *SimpleHttp) GetJson(url string, dst interface{}) error {
 	return nil
 
 }
+
+func (sh *SimpleHttp) PostJson(url string, dst interface{}, parseResponse bool) error {
+
+	data, err := sh.Post(url, dst)
+	if err != nil {
+		return err
+	}
+
+	if parseResponse {
+		if err := json.Unmarshal([]byte(data), dst); err != nil {
+			return err
+		}
+	}
+
+	return nil
+
+}
