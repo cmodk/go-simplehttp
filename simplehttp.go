@@ -106,7 +106,7 @@ func (sh *SimpleHttp) Get(url string) (string, error) {
 	sh.set_headers(r)
 	resp, err := client.Do(r)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
