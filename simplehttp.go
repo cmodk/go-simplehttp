@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	net_url "net/url"
@@ -21,7 +20,6 @@ import (
 
 type SimpleHttp struct {
 	server         string
-	debug          bool
 	static_headers map[string]string
 	logger         *logrus.Logger
 	transport      *http.Transport
@@ -31,15 +29,10 @@ func New(s string, lg *logrus.Logger) SimpleHttp {
 	sh := SimpleHttp{
 		server:         s,
 		logger:         lg,
-		debug:          false,
 		static_headers: make(map[string]string),
 	}
 
 	return sh
-}
-
-func (sh *SimpleHttp) SetDebug(d bool) {
-	sh.debug = d
 }
 
 func (sh *SimpleHttp) AddHeader(k string, v string) {
@@ -103,9 +96,7 @@ func (sh *SimpleHttp) Get(url string) (string, error) {
 		client.Transport = sh.transport
 	}
 
-	if sh.debug {
-		log.Printf("GET: %s\n", url)
-	}
+	sh.logger.Printf("GET: %s\n", url)
 
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -143,9 +134,7 @@ func (sh *SimpleHttp) PostPriv(url string, data interface{}, method string) (str
 
 	client := &http.Client{}
 
-	if sh.debug {
-		log.Printf("%s: %s\n", method, url)
-	}
+	sh.logger.Printf("%s: %s\n", method, url)
 
 	extra_headers := make(map[string]string)
 	var reader io.Reader
@@ -176,12 +165,12 @@ func (sh *SimpleHttp) PostPriv(url string, data interface{}, method string) (str
 	}
 	sh.set_headers(r)
 
-	if sh.debug {
+	if sh.logger.Level == logrus.DebugLevel {
 		req, err := httputil.DumpRequest(r, true)
 		if err != nil {
-			log.Printf("Could not dump request: %s\n", err.Error)
+			sh.logger.Errorf("Could not dump request: %s\n", err.Error)
 		} else {
-			log.Printf("Request: %s\n", req)
+			sh.logger.Printf("Request: %s\n", req)
 		}
 	}
 
