@@ -26,6 +26,7 @@ func (sh *SimpleHttp) PostJson(url string, dst interface{}, parseResponse bool) 
 		return err
 	}
 
+	sh.logger.Printf("PostJson Response: %s\n", data)
 	if parseResponse {
 		if err := json.Unmarshal([]byte(data), dst); err != nil {
 			return err
