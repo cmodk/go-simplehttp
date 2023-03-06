@@ -95,7 +95,7 @@ func (sh *SimpleHttp) Get(url string) (string, error) {
 
 	client.Transport = sh.transport
 
-	sh.logger.Printf("GET: %s\n", url)
+	sh.logger.Tracef("GET: %s\n", url)
 
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -133,7 +133,7 @@ func (sh *SimpleHttp) PostPriv(url string, data interface{}, method string) (str
 
 	client := &http.Client{}
 
-	sh.logger.Printf("%s: %s\n", method, url)
+	sh.logger.Tracef("%s: %s\n", method, url)
 
 	extra_headers := make(map[string]string)
 	var reader io.Reader
@@ -169,7 +169,7 @@ func (sh *SimpleHttp) PostPriv(url string, data interface{}, method string) (str
 		if err != nil {
 			sh.logger.Errorf("Could not dump request: %s\n", err.Error)
 		} else {
-			sh.logger.Printf("Request: %s\n", req)
+			sh.logger.Tracef("Request: %s\n", req)
 		}
 	}
 
