@@ -30,6 +30,7 @@ func New(s string, lg *logrus.Logger) SimpleHttp {
 		server:         s,
 		logger:         lg,
 		static_headers: make(map[string]string),
+		transport:      &http.Transport{TLSClientConfig: &tls.Config{}},
 	}
 
 	return sh
@@ -72,13 +73,13 @@ func (sh *SimpleHttp) SetCustomCA(cert string) error {
 		RootCAs: rootCAs,
 	}
 
-	if sh.transport == nil {
-		sh.transport = &http.Transport{TLSClientConfig: config}
-	} else {
-		sh.transport.TLSClientConfig = config
-	}
+	sh.transport.TLSClientConfig = config
 
 	return nil
+}
+
+func (sh *SimpleHttp) SkipTLSVerification() {
+	sh.transport.TLSClientConfig.InsecureSkipVerify = true
 }
 
 func (sh *SimpleHttp) set_headers(r *http.Request) {
@@ -92,9 +93,7 @@ func (sh *SimpleHttp) Get(url string) (string, error) {
 
 	client := &http.Client{}
 
-	if sh.transport != nil {
-		client.Transport = sh.transport
-	}
+	client.Transport = sh.transport
 
 	sh.logger.Printf("GET: %s\n", url)
 
